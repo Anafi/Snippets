@@ -5,20 +5,17 @@ from PyQt4.QtGui import *
 from qgis.core import *
 from qgis.gui import *
 
-####################### Step 1: separate foreground from background network
+"""Step 1: separate foreground from background network"""
 
 #select current layer (you can also try to load a Vector layer by its path)
 Athens_allRoads = iface.mapCanvas().currentLayer()
 
-#build your queries by two expressions for the foreground and the background network
-#it only works for a pair of fields!! needs fixing!!
-
+#two expressions for Foreground and Background
 expr_Foreground = QgsExpression("type= 'primary' OR type='primary_link' OR type = 'motorway' OR type= 'motorway_link' OR type= 'secondary' OR type= 'secondary_link' OR type= 'trunk' OR type= 'trunk_link'")
 expr_Background = QgsExpression("type= 'bridge' OR type='footway' OR type = 'living_street' OR type= 'path' OR type= 'pedestrian' OR type= 'residential' OR type= 'road' OR type= 'service' OR type= 'steps' OR type= 'track' OR type= 'unclassified'")
 
 #create two writers to write the new vector layers
 provider = Athens_allRoads.dataProvider()
-
 Foreground_writer = QgsVectorFileWriter ("/Users/joe/Documents/2015_Localities/Foreground_network.shp", "UTF-8", provider.fields() ,provider.geometryType(), provider.crs() , "ESRI Shapefile")
 Background_writer = QgsVectorFileWriter ("/Users/joe/Documents/2015_Localities/Background_network.shp", "UTF-8", provider.fields() ,provider.geometryType(), provider.crs() , "ESRI Shapefile")
 
@@ -28,7 +25,7 @@ if Background_writer.hasError() != QgsVectorFileWriter.NoError:
     print "Error when creating shapefile: ",  Background_writer.errorMessage()
 
 #get features based on the queries and add them to the new layers
-
+#avoid printing True (processing time)
 Foreground_elem= QgsFeature()
 
 for elem in Athens_allRoads.getFeatures (QgsFeatureRequest(expr_Foreground)):
@@ -47,8 +44,23 @@ for elem in Athens_allRoads.getFeatures (QgsFeatureRequest(expr_Background)):
 
 del Background_writer
 
+#add the two new layers to the mapCanvas
+Foreground=QgsVectorLayer ("/Users/joe/Documents/2015_Localities/Foreground_network.shp", 'Foreground', 'ogr')
+Background=QgsVectorLayer ("/Users/joe/Documents/2015_Localities/Background_network.shp", 'Background', 'ogr')
 
-####################### Step 2: Integrate multiple lines into one for the foreground and background network
+QgsMapLayerRegistry.instance().addMapLayers([Foreground,Background])
+iface.mapCanvas().refresh()
+
+"""Step 2: Integrate multiple lines into one for the foreground and background network"""
+#make dictionary with same names, include NULL values
+#add new field 'id', and rowid all features, including NULL values
+#double entries first and last feature
+#NULL values are being multiplied
+#Make the second loop work with expr_name = QgsExpression("\"name\" == fname")
+
+
+
+
 
 ####################### Step 3: Extend background to foreground network
 
@@ -65,3 +77,4 @@ del Background_writer
 #1. remove lines with length = 0
 #2. remove invalid geometry
 #3. remove isolated lines
+#4. snap lines
