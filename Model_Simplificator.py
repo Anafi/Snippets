@@ -8,14 +8,13 @@ from qgis.gui import *
 ####################### Step 1: separate foreground from background network
 
 #select current layer (you can also try to load a Vector layer by its path)
-
 Athens_allRoads = iface.mapCanvas().currentLayer()
 
 #build your queries by two expressions for the foreground and the background network
 #it only works for a pair of fields!! needs fixing!!
 
-expr_Foreground = QgsExpression("\"type\"= 'primary' OR \"type\"='primary_link' OR \"type\" = 'motorway' OR \"type\"= 'motorway_link' OR \"type\"= 'secondary' OR \"type\"= 'secondary_link' OR \"type\"= 'trunk' OR \"type\"= 'trunk_link'")
-expr_Background = QgsExpression("\"type\"= 'bridge' OR \"type\"='footway' OR \"type\" = 'living_street' OR \"type\"= 'path' OR \"type\"= 'pedestrian' OR \"type\"= 'residential' OR \"type\"= 'road' OR \"type\"= 'service' OR \"type\"= 'steps' OR \"type\"= 'track' OR \"type\"= 'unclassified'")
+expr_Foreground = QgsExpression("type= 'primary' OR type='primary_link' OR type = 'motorway' OR type= 'motorway_link' OR type= 'secondary' OR type= 'secondary_link' OR type= 'trunk' OR type= 'trunk_link'")
+expr_Background = QgsExpression("type= 'bridge' OR type='footway' OR type = 'living_street' OR type= 'path' OR type= 'pedestrian' OR type= 'residential' OR type= 'road' OR type= 'service' OR type= 'steps' OR type= 'track' OR type= 'unclassified'")
 
 #create two writers to write the new vector layers
 provider = Athens_allRoads.dataProvider()
