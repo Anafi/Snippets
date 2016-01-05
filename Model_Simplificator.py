@@ -12,7 +12,7 @@ Athens_allRoads = iface.mapCanvas().currentLayer()
 
 #two expressions for Foreground and Background
 expr_Foreground = QgsExpression("type= 'primary' OR type='primary_link' OR type = 'motorway' OR type= 'motorway_link' OR type= 'secondary' OR type= 'secondary_link' OR type= 'trunk' OR type= 'trunk_link'")
-expr_Background = QgsExpression("type= 'bridge' OR type='footway' OR type = 'living_street' OR type= 'path' OR type= 'pedestrian' OR type= 'residential' OR type= 'road' OR type= 'service' OR type= 'steps' OR type= 'track' OR type= 'unclassified'")
+expr_Background = QgsExpression("type=tertiary or type=tertiary_link or type= 'bridge' OR type='footway' OR type = 'living_street' OR type= 'path' OR type= 'pedestrian' OR type= 'residential' OR type= 'road' OR type= 'service' OR type= 'steps' OR type= 'track' OR type= 'unclassified'")
 
 #create two writers to write the new vector layers
 provider = Athens_allRoads.dataProvider()
