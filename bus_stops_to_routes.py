@@ -5,7 +5,6 @@
 # TO DO: find based on street name and if names do not match closest neighbour
 # TO DO: for shortest_path use a graph that has a cost of primary and secondary routes
 
-
 # load dependencies
 import math
 from qgis.core import *
