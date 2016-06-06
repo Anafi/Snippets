@@ -32,7 +32,7 @@ for i in p.getFeatures():
 
 
 def distance_point_to_line(point_feat, line_feat):
-    magnitude = math.hypot( abs(line_endpoints[line_feat][0][0] - line_endpoints[line_feat][1][0]), abs(line_endpoints[line_feat][0][1] - line_endpoints[line_feat][1][1]))
+    magnitude = math.hypot(abs(line_endpoints[line_feat][0][0] - line_endpoints[line_feat][1][0]), abs(line_endpoints[line_feat][0][1] - line_endpoints[line_feat][1][1]))
     u = ((points_coord[point_feat][0] - line_endpoints[line_feat][0][0]) * (line_endpoints[line_feat][1][0] - line_endpoints[line_feat][0][0]) + (points_coord[point_feat][1] - line_endpoints[line_feat][0][1]) * (line_endpoints[line_feat][1][1] - line_endpoints[line_feat][0][1])) / (magnitude)
     ix = line_endpoints[line_feat][0][0] + u * (line_endpoints[line_feat][1][0] - line_endpoints[line_feat][0][0])
     iy = line_endpoints[line_feat][0][1] + u * (line_endpoints[line_feat][1][1] - line_endpoints[line_feat][0][1])
@@ -51,15 +51,12 @@ line_class = {feat.id(): feat.attributes()[2] for feat in n.getFeatures()}
 # filter lines that are on the primary network if any
 
 for k, v in p_to_lines.items():
-    filtered_lines = []
     distances = []
-    for line in v:
-        distances.append(distance_point_to_line(k, line))
-    sorted_lines = [x for (y, x) in sorted(zip(distances, filtered_lines))]
-    for sorted_line in
-
-    two_closest_lines = [sorted_lines[0] + sorted_lines[1]]
-
+    for l in v:
+        distances.append(distance_point_to_line(k, l))
+    sorted_lines = [x for (y, x) in sorted(zip(distances, v))]
+    lines_between = []
+    for line in sorted_lines:
         # find angle of point- bus stop (O) and endpoint of lines ( A, B)
         OA = math.hypot((line_endpoints[line][0][0] - points_coord[k][0]),(line_endpoints[line][0][1] - points_coord[k][1]))
         OB = math.hypot((line_endpoints[line][1][0] - points_coord[k][0]),(line_endpoints[line][1][1] - points_coord[k][1]))
@@ -67,16 +64,10 @@ for k, v in p_to_lines.items():
         OAB = math.degrees(math.acos((OA**2 + AB**2 - OB**2)/(2*OA*AB)))
         OBA = math.degrees(math.acos((OB**2 + AB**2 - OA**2)/(2*OB*AB)))
         if OAB <= 90 and OBA <= 90:
-            filtered_lines.append(line)
-
-    for filtered_line in filtered_lines:
-        distances.append(distance_point_to_line(k,line))
-
-
-    if line_class[two_closest_lines[1]] == u'A Road' or line_class[two_closest_lines[1]] == u'B Road':
-        closest_line = two_closest_lines[1]
-    else:
-        closest_line = two_closest_lines[0]
+            lines_between.append(line)
+    closest_line = lines_between[0]
+    if (line_class[lines_between[1]] == u'A Road' or line_class[lines_between[1]]) and not (line_class[lines_between[0]] == u'A Road' or line_class[lines_between[0]])  == u'B Road':
+        closest_line = lines_between[1]
     p_to_lines[k] = [closest_line]
 
 
