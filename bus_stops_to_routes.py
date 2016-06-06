@@ -62,5 +62,5 @@ for k, v in p_to_lines.items():
 lines=[]
 for k, v in p_to_lines.items():
     lines.append(v[0])
-
+# this is to select lines
 n.select(lines)
