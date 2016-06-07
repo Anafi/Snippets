@@ -25,7 +25,7 @@ while fit.nextFeature(feat):
 # find four nearest lines to a point
 p_to_lines = {}  # { point_id: closest line neighbour segment id}
 for i in p.getFeatures():
-    nearestIds = spIndex.nearestNeighbor(QgsPoint(i.geometry().asPoint()), 2)
+    nearestIds = spIndex.nearestNeighbor(QgsPoint(i.geometry().asPoint()), 4)
     p_to_lines[i.id()] = nearestIds
 
 # filter neighbours based on distance for k, v in p_to_lines.items():
@@ -33,7 +33,7 @@ for i in p.getFeatures():
 
 def distance_point_to_line(point_feat, line_feat):
     magnitude = math.hypot(abs(line_endpoints[line_feat][0][0] - line_endpoints[line_feat][1][0]), abs(line_endpoints[line_feat][0][1] - line_endpoints[line_feat][1][1]))
-    u = ((points_coord[point_feat][0] - line_endpoints[line_feat][0][0]) * (line_endpoints[line_feat][1][0] - line_endpoints[line_feat][0][0]) + (points_coord[point_feat][1] - line_endpoints[line_feat][0][1]) * (line_endpoints[line_feat][1][1] - line_endpoints[line_feat][0][1])) / (magnitude)
+    u = ((points_coord[point_feat][0] - line_endpoints[line_feat][0][0]) * (line_endpoints[line_feat][1][0] - line_endpoints[line_feat][0][0]) + (points_coord[point_feat][1] - line_endpoints[line_feat][0][1]) * (line_endpoints[line_feat][1][1] - line_endpoints[line_feat][0][1])) / (math.pow(magnitude,2))
     ix = line_endpoints[line_feat][0][0] + u * (line_endpoints[line_feat][1][0] - line_endpoints[line_feat][0][0])
     iy = line_endpoints[line_feat][0][1] + u * (line_endpoints[line_feat][1][1] - line_endpoints[line_feat][0][1])
     distance = math.hypot( abs(ix-points_coord[point_feat][0]), abs(iy-points_coord[point_feat][1]))
@@ -51,23 +51,28 @@ line_class = {feat.id(): feat.attributes()[2] for feat in n.getFeatures()}
 # filter lines that are on the primary network if any
 
 for k, v in p_to_lines.items():
-    distances = []
-    for l in v:
-        distances.append(distance_point_to_line(k, l))
-    sorted_lines = [x for (y, x) in sorted(zip(distances, v))]
     lines_between = []
-    for line in sorted_lines:
+
+    for line in v:
         # find angle of point- bus stop (O) and endpoint of lines ( A, B)
         OA = math.hypot((line_endpoints[line][0][0] - points_coord[k][0]),(line_endpoints[line][0][1] - points_coord[k][1]))
         OB = math.hypot((line_endpoints[line][1][0] - points_coord[k][0]),(line_endpoints[line][1][1] - points_coord[k][1]))
         AB = math.hypot((line_endpoints[line][0][0] - line_endpoints[line][1][0]),(line_endpoints[line][0][1] - line_endpoints[line][1][1]))
-        OAB = math.degrees(math.acos((OA**2 + AB**2 - OB**2)/(2*OA*AB)))
-        OBA = math.degrees(math.acos((OB**2 + AB**2 - OA**2)/(2*OB*AB)))
+        OAB = math.degrees(math.acos((math.pow(OA,2) + math.pow(AB,2) - math.pow(OB,2))/(2*OA*AB)))
+        OBA = math.degrees(math.acos((math.pow(OB,2) + math.pow(AB,2) - math.pow(OA,2))/(2*OB*AB)))
         if OAB <= 90 and OBA <= 90:
             lines_between.append(line)
-    closest_line = lines_between[0]
-    if (line_class[lines_between[1]] == u'A Road' or line_class[lines_between[1]]) and not (line_class[lines_between[0]] == u'A Road' or line_class[lines_between[0]])  == u'B Road':
-        closest_line = lines_between[1]
+    distances = []
+    for l in lines_between:
+        distances.append(distance_point_to_line(k, l))
+    sorted_lines = [x for (y, x) in sorted(zip(distances, lines_between))]
+    if len(sorted_lines) == 0:
+        closest_line = v[0]
+    else:
+        closest_line = sorted_lines[0]
+    if len(sorted_lines)>1:
+        if (line_class[sorted_lines[1]] == u'A Road' or line_class[sorted_lines[1]]== u'B Road') and not (line_class[sorted_lines[0]] == u'A Road' or line_class[sorted_lines[0]]== u'B Road') :
+            closest_line = sorted_lines[1]
     p_to_lines[k] = [closest_line]
 
 
