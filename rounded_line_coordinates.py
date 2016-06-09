@@ -30,29 +30,31 @@ def digit_sum(n):
         n = n // 10
     return total
 
+
+# digit_start_x = digit_sum(f.geometry().asPolyline()[0][0])
+# digit_end_x = digit_sum(f.geometry().asPolyline()[1][0])
+# if digit_start_x > max_digit_x:
+#    max_digit_x = digit_start_x
+# if digit_end_x > max_digit_x:
+#    max_digit_x = digit_end_x
+# if digit_start_x < min_digit_x:
+#    min_digit_x = digit_start_x
+# if digit_end_x < min_digit_x:
+#    min_digit_x = digit_end_x
+# digit_start_y = digit_sum(f.geometry().asPolyline()[0][1])
+# digit_end_y = digit_sum(f.geometry().asPolyline()[1][1])
+# if digit_start_y > max_digit_y:
+#    max_digit_y = digit_start_y
+# if digit_end_y > max_digit_y:
+#    max_digit_y = digit_end_y
+# if digit_start_y < min_digit_y:
+#    min_digit_y = digit_start_y
+# if digit_end_y < min_digit_y:
+#    min_digit_y = digit_end_y
+
 for f in n.getFeatures():
     fid=f.id()
-    #digit_start_x = digit_sum(f.geometry().asPolyline()[0][0])
-    #digit_end_x = digit_sum(f.geometry().asPolyline()[1][0])
-    #if digit_start_x > max_digit_x:
-    #    max_digit_x = digit_start_x
-    #if digit_end_x > max_digit_x:
-    #    max_digit_x = digit_end_x
-    #if digit_start_x < min_digit_x:
-    #    min_digit_x = digit_start_x
-    #if digit_end_x < min_digit_x:
-    #    min_digit_x = digit_end_x
-    #digit_start_y = digit_sum(f.geometry().asPolyline()[0][1])
-    #digit_end_y = digit_sum(f.geometry().asPolyline()[1][1])
-    #if digit_start_y > max_digit_y:
-    #    max_digit_y = digit_start_y
-    #if digit_end_y > max_digit_y:
-    #    max_digit_y = digit_end_y
-    #if digit_start_y < min_digit_y:
-    #    min_digit_y = digit_start_y
-    #if digit_end_y < min_digit_y:
-    #    min_digit_y = digit_end_y
-    start_point_x = round(f.geometry().asPolyline()[0][0], 3)
+    start_point_x = round(f.geometry().asPolyline()[0][0], 0)
     # if len(str(math.modf(start_point_x)[0])) == 4:
     #    start_point_x = str(start_point_x)+'0'
     start_point_y = round(f.geometry().asPolyline()[0][1], 0)
