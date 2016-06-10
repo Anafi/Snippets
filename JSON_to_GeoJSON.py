@@ -1,5 +1,9 @@
 
-# copied from
+# connect to TfL's URL and request all data you need
+
+
+# (copied) convert JSON file to GEOJSON
+
 def convert_json(items):
     import json
     return json.dumps(dict(type="FeatureCollection", features=[
