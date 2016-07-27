@@ -43,9 +43,12 @@ meridian_a_roads = QgsVectorLayer(meridian_a_roads_path, "meridian_a_roads", "og
 meridian_b_roads = QgsVectorLayer(meridian_b_roads_path, "meridian_b_roads", "ogr")
 meridian_shp_path = 'C:/Users/I.Kolovou/Desktop/itn/meridian.shp'
 
-processing.runalg("qgis:mergevectorlayers", meridian_motorways, meridian_a_roads, meridian_b_roads, meridian_shp_path)
+processing.runalg("qgis:mergevectorlayers", [meridian_motorways, meridian_a_roads, meridian_b_roads], meridian_shp_path)
 
 meridian = QgsVectorLayer(meridian_shp_path, "meridian_sample", "ogr")
+
+meridian_buffer_shp_path = 'C:/Users/I.Kolovou/Desktop/itn/meridian_buffer.shp'
+meridian_buffer = processing.runandload("qgis:fixeddistancebuffer", meridian, 10, 5, False, meridian_buffer_shp_path )
 
 # create a graph from os road layer
 
@@ -66,6 +69,8 @@ def update_feat_id_col(shp, col_name, start):
             fid+=1
     shp.dataProvider().changeAttributeValues(updateMap)
 
+# parallel lines are not included as this is not disconnections
+
 def read_shp_to_graph(shp_path):
     graph_shp = nx.read_shp(str(shp_path), simplify=True)
     graph = nx.MultiGraph(graph_shp.to_undirected(reciprocal=False))
@@ -75,6 +80,7 @@ update_feat_id_col(os_road_sel, 'feat_id', 0)
 QgsMapLayerRegistry.instance().addMapLayer(os_road_sel)
 os_road_graph = read_shp_to_graph(os_road_sel_shp_path)
 
+'''filter connectivity of nodes that are within a buffer from the meridian'''
 nodes_con_1 = [node for node in os_road_graph.nodes() if len(os_road_graph.neighbors(node)) == 1]
 
 junctions = {}
@@ -98,10 +104,25 @@ for e in os_road_graph.edges(data=True):
     elif e[0] in roadEnds.keys() or e[1] in roadEnds.keys():
         edges_to_check.append(e[2]['feat_id'])
 
-os_road_sel=iface.mapCanvas().currentLayer()
+os_road_sel = iface.mapCanvas().currentLayer()
 os_road_sel.select(edges_to_join)
 
 '''use identifier (os_node) and startNode - endNode instead (os_road) OR build graph based on identifier'''
+
+# find which features from os_road intersect the buffer of meridian
+provider = os_road_sel.dataProvider()
+spIndex = QgsSpatialIndex()  # create spatial index object
+feat = QgsFeature()
+fit = provider.getFeatures()  # gets all features in layer
+# insert features to index
+while fit.nextFeature(feat):
+    spIndex.insertFeature(feat)
+
+os_road_meridian = {i.id(): spIndex.intersects(QgsRectangle()) for i in meridian_buffer.getFeatures() if not i.geometry().isMultipart()}
+
+#(nearest point of one geom to another)
+# QgsGeometry  nearestPoint (const QgsGeometry &other) const
+# QgsGeometry  shortestLine (const QgsGeometry &other) const
 
 
 
