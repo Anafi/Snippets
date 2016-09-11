@@ -1,45 +1,7 @@
 import networkx as nx
+from os.path import expanduser
 
 # source: http://stackoverflow.com/questions/30770776/networkx-how-to-create-multidigraph-from-shapefile
-def read_multi_shp(path):
-    """
-    copied from read_shp, but allowing MultiDiGraph instead.
-    """
-    try:
-        from osgeo import ogr
-    except ImportError:
-        raise ImportError("read_shp requires OGR: http://www.gdal.org/")
-
-    net = nx.MultiDiGraph() # <--- here is the main change I made
-
-    def getfieldinfo(lyr, feature, flds):
-            f = feature
-            return [f.GetField(f.GetFieldIndex(x)) for x in flds]
-
-    def addlyr(lyr, fields):
-        for findex in xrange(lyr.GetFeatureCount()):
-            f = lyr.GetFeature(findex)
-            flddata = getfieldinfo(lyr, f, fields)
-            g = f.geometry()
-            attributes = dict(zip(fields, flddata))
-            attributes["ShpName"] = lyr.GetName()
-            if g.GetGeometryType() == 1:  # point
-                net.add_node((g.GetPoint_2D(0)), attributes)
-            if g.GetGeometryType() == 2:  # linestring
-                attributes["Wkb"] = g.ExportToWkb()
-                attributes["Wkt"] = g.ExportToWkt()
-                attributes["Json"] = g.ExportToJson()
-                last = g.GetPointCount() - 1
-                net.add_edge(g.GetPoint_2D(0), g.GetPoint_2D(last), attr_dict=attributes) #<--- also changed this line
-
-    if isinstance(path, str):
-        shp = ogr.Open(path)
-        lyrcount = shp.GetLayerCount()  # multiple layers indicate a directory
-        for lyrindex in xrange(lyrcount):
-            lyr = shp.GetLayerByIndex(lyrindex)
-            flds = [x.GetName() for x in lyr.schema]
-            addlyr(lyr, flds)
-    return net
 
 
 def read_shp_to_graph(shp_path):
@@ -64,10 +26,73 @@ def read_shp_to_graph(shp_path):
     return graph, ids_excl
 
 
-def read_shp(path, simplify=True, geom_attrs=True):
+# source: ess utility functions
+def getLayerByName(name):
+    layer = None
+    for i in QgsMapLayerRegistry.instance().mapLayers().values():
+        if i.name() == name:
+            layer = i
+    return layer
 
-    # construct a multi-graph
-    net = nx.MultiGraph()
+
+# source: ess utility functions
+def getLayerPath4ogr(layer):
+    path = ''
+    provider = layer.dataProvider()
+    provider_type = provider.name()
+    # TODO: if provider_type == 'spatialite'
+    if  provider_type == 'postgres':
+        uri = QgsDataSourceURI(provider.dataSourceUri())
+        databaseName = uri.database().encode('utf-8')
+        databaseServer = uri.host().encode('utf-8')
+        databaseUser = uri.username().encode('utf-8')
+        databasePW = uri.password().encode('utf-8')
+        path = "PG: host=%s dbname=%s user=%s password=%s" % (
+        databaseServer, databaseName, databaseUser, databasePW)
+    elif provider_type == 'ogr':
+        uri = provider.dataSourceUri()
+        path = uri.split("|")[0]
+    elif provider_type == 'memory':
+        # save temp file in home directory
+        home = expanduser("~")
+        path = home + '/' + layer.name() + '.shp'
+        copied_layer = copy_shp(layer,path)
+    return path, provider_type
+
+
+def getAllFeatures(layer):
+    allfeatures = {}
+    if layer:
+        features = layer.getFeatures()
+        allfeatures = {feature.id(): feature for feature in features}
+    return allfeatures
+
+
+# copy a temporary layer
+def copy_shp(temp_layer,path):
+    features_to_copy = getAllFeatures(temp_layer)
+    provider = temp_layer.dataProvider()
+    writer = QgsVectorFileWriter(path, provider.encoding(), provider.fields(), provider.geometryType(), provider.crs(),
+                                 "ESRI Shapefile")
+
+    # TODO: push message
+    if writer.hasError() != QgsVectorFileWriter.NoError:
+        print "Error when creating shapefile: ", writer.errorMessage()
+
+    for fet in features_to_copy:
+        writer.addFeature(fet)
+
+    del writer
+    layer = QgsVectorLayer(path, temp_layer.name(),"ogr")
+    return layer
+
+# delete saved copy of temporary layer
+def del_shp(temp_layer,path):
+    # deleteShapeFile
+    pass
+
+
+def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
 
     # 1. open shapefiles from directory/filename
     try:
@@ -75,59 +100,81 @@ def read_shp(path, simplify=True, geom_attrs=True):
     except ImportError:
         raise ImportError("read_shp requires OGR: http://www.gdal.org/")
 
+    # find if the table with the give table_name is a shapefile or a postgis file
+    layer = getLayerByName(layer_name)
+    path, provider_type = getLayerPath4ogr(layer)
+
     # TODO: convert path string to raw string
-    if not isinstance(path, str):
+    # TODO: push error message when path is empty/does not exist/connection with db does not exist
+    if path == '':  # or not os.path.exists(path)
         return
 
-    shp = ogr.Open(path)
-
-    # 2. open temporary shapefiles
-    # load layer from mapCanvas()
-
-    #if shp.dataProvider().name() == u'memory':
-    fields = [x.name() for x in shp.dataProvider().fields()]
-    if simplify:
-        pass
-
+    # construct a multi-graph
+    net = nx.MultiGraph()
+    lyr = ogr.Open(path)
+    count_not_incl = 0
     # 3. open postgis layers
-    databaseServer = "<IP of database server OR Name of database server"
-    databaseName = "<Name of database>"
-    databaseUser = "<User name>"
-    databasePW = "<User password>"
-    connString = "PG: host=%s dbname=%s user=%s password=%s" % (databaseServer, databaseName, databaseUser, databasePW)
+    if provider_type == 'postgres':
+        layer = [table for table in lyr if table.GetName() == layer_name][0]
+        fields = [x.GetName() for x in layer.schema]
+    elif provider_type in ('ogr','memory'):
+        layer = lyr[0]
+        fields = [x.GetName() for x in layer.schema]
 
-    conn = ogr.Open(connString)
-    layerList = list(set([i.GetName() for i in conn]))
-    conn.Destroy()
+    for f in layer:
+        flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
+        g = f.geometry()
+        attributes = dict(zip(fields, flddata))
+        attributes["ShpName"] = lyr.GetName()
+        # Note:  Using layer level geometry type
+        if g.GetGeometryType() == ogr.wkbLineString:
+            for edge in edges_from_line(g, attributes, simplify, geom_attrs):
+                e1, e2, attr = edge
+                print e1,e2,attr
+                net.add_edge(e1, e2)
+                net[e1][e2].update(attr)
+        elif g.GetGeometryType() == ogr.wkbMultiLineString:
+            for i in range(g.GetGeometryCount()):
+                geom_i = g.GetGeometryRef(i)
+                for edge in edges_from_line(geom_i, attributes, simplify, geom_attrs):
+                    e1, e2, attr = edge
+                    net.add_edge(e1, e2)
+                    net[e1][e2].update(attr)
+        else:
+            count_not_incl += 1
+            #TODO: push message x features not included
 
-    # this is if you open a directory of files
-
-    # for lyr in shp:
-        #fields = [x.GetName() for x in lyr.schema]
-        #for f in lyr:
-        #    flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
-        #    g = f.geometry()
-        #    attributes = dict(zip(fields, flddata))
-        #    attributes["ShpName"] = lyr.GetName()
-        #    # Note:  Using layer level geometry type
-        #    if g.GetGeometryType() == ogr.wkbPoint:
-        #        net.add_node((g.GetPoint_2D(0)), attributes)
-        #    elif g.GetGeometryType() in (ogr.wkbLineString,
-        #                                 ogr.wkbMultiLineString):
-        #        for edge in edges_from_line(g, attributes, simplify,
-        #                                    geom_attrs):
-        #            e1, e2, attr = edge
-        #            net.add_edge(e1, e2)
-        #            net[e1][e2].update(attr)
-        #    else:
-        #        raise ImportError("GeometryType {} not supported".
-        #                          format(g.GetGeometryType()))
+    if provider_type == 'postgres':
+        # destroy connection with db
+        lyr.Destroy()
+    elif provider_type == 'memory':
+        # delete shapefile
+        pass
 
     return net
 
 
 def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
-
+    """
+    Generate edges for each line in geom
+    Written as a helper for read_shp
+    Parameters
+    ----------
+    geom:  ogr line geometry
+        To be converted into an edge or edges
+    attrs:  dict
+        Attributes to be associated with all geoms
+    simplify:  bool
+        If True, simplify the line as in read_shp
+    geom_attrs:  bool
+        If True, add geom attributes to edge as in read_shp
+    Returns
+    -------
+     edges:  generator of edges
+        each edge is a tuple of form
+        (node1_coord, node2_coord, attribute_dict)
+        suitable for expanding into a networkx Graph add_edge call
+    """
     try:
         from osgeo import ogr
     except ImportError:
@@ -157,8 +204,3 @@ def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
                     del segment
                 yield (pt1, pt2, edge_attrs)
 
-    elif geom.GetGeometryType() == ogr.wkbMultiLineString:
-        for i in range(geom.GetGeometryCount()):
-            geom_i = geom.GetGeometryRef(i)
-            for edge in edges_from_line(geom_i, attrs, simplify, geom_attrs):
-                yield edge
