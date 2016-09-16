@@ -120,7 +120,6 @@ def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
     elif provider_type in ('ogr','memory'):
         layer = lyr[0]
         fields = [x.GetName() for x in layer.schema]
-
     for f in layer:
         flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
         g = f.geometry()
@@ -130,16 +129,13 @@ def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
         if g.GetGeometryType() == ogr.wkbLineString:
             for edge in edges_from_line(g, attributes, simplify, geom_attrs):
                 e1, e2, attr = edge
-                print e1,e2,attr
-                net.add_edge(e1, e2)
-                net[e1][e2].update(attr)
+                net.add_edge(e1, e2, attr_dict=attr)
         elif g.GetGeometryType() == ogr.wkbMultiLineString:
             for i in range(g.GetGeometryCount()):
                 geom_i = g.GetGeometryRef(i)
                 for edge in edges_from_line(geom_i, attributes, simplify, geom_attrs):
                     e1, e2, attr = edge
-                    net.add_edge(e1, e2)
-                    net[e1][e2].update(attr)
+                    net.add_edge(e1, e2, attr_dict=attr)
         else:
             count_not_incl += 1
             #TODO: push message x features not included
