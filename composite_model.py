@@ -43,12 +43,13 @@ meridian_a_roads = QgsVectorLayer(meridian_a_roads_path, "meridian_a_roads", "og
 meridian_b_roads = QgsVectorLayer(meridian_b_roads_path, "meridian_b_roads", "ogr")
 meridian_shp_path = 'C:/Users/I.Kolovou/Desktop/itn/meridian.shp'
 
+# TODO: add class column for motorways, a roads and b roads
 processing.runalg("qgis:mergevectorlayers", [meridian_motorways, meridian_a_roads, meridian_b_roads], meridian_shp_path)
 
 meridian = QgsVectorLayer(meridian_shp_path, "meridian_sample", "ogr")
 
 meridian_buffer_shp_path = 'C:/Users/I.Kolovou/Desktop/itn/meridian_buffer.shp'
-meridian_buffer = processing.runandload("qgis:fixeddistancebuffer", meridian, 10, 5, False, meridian_buffer_shp_path )
+meridian_buffer = processing.runandload("qgis:fixeddistancebuffer", meridian, 10, 5, False, meridian_buffer_shp_path)
 
 # create a graph from os road layer
 
