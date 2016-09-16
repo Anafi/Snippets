@@ -1,30 +1,9 @@
 import networkx as nx
 from os.path import expanduser
+import os
+from decimal import *
 
 # source: http://stackoverflow.com/questions/30770776/networkx-how-to-create-multidigraph-from-shapefile
-
-
-def read_shp_to_graph(shp_path):
-    graph_shp = nx.read_shp(str(shp_path), simplify=True)
-    shp = QgsVectorLayer(shp_path, "network", "ogr")
-    graph = nx.MultiGraph(graph_shp.to_undirected(reciprocal=False))
-    # parallel edges are excluded of the graph because read_shp does not return a multi-graph, self-loops are included
-    all_ids = [i.id() for i in shp.getFeatures()]
-    ids_incl = [i[2]['feat_id'] for i in graph.edges(data=True)]
-    ids_excl = set(all_ids) - set(ids_incl)
-
-    request = QgsFeatureRequest().setFilterFids(list(ids_excl))
-    excl_features = [feat for feat in shp.getFeatures(request)]
-
-    ids_excl_attr = [[i.geometry().asPolyline()[0], i.geometry().asPolyline()[-1], i.attributes()] for i in
-                     excl_features]
-    column_names = [i.name() for i in shp.dataProvider().fields()]
-
-    for i in ids_excl_attr:
-        graph.add_edge(i[0], i[1], attr_dict=dict(zip(column_names, i[2])))
-
-    return graph, ids_excl
-
 
 # source: ess utility functions
 def getLayerByName(name):
@@ -41,7 +20,7 @@ def getLayerPath4ogr(layer):
     provider = layer.dataProvider()
     provider_type = provider.name()
     # TODO: if provider_type == 'spatialite'
-    if  provider_type == 'postgres':
+    if provider_type == 'postgres':
         uri = QgsDataSourceURI(provider.dataSourceUri())
         databaseName = uri.database().encode('utf-8')
         databaseServer = uri.host().encode('utf-8')
@@ -79,7 +58,7 @@ def copy_shp(temp_layer,path):
     if writer.hasError() != QgsVectorFileWriter.NoError:
         print "Error when creating shapefile: ", writer.errorMessage()
 
-    for fet in features_to_copy:
+    for fet in features_to_copy.values():
         writer.addFeature(fet)
 
     del writer
@@ -87,12 +66,27 @@ def copy_shp(temp_layer,path):
     return layer
 
 # delete saved copy of temporary layer
-def del_shp(temp_layer,path):
+def del_shp(path):
     # deleteShapeFile
-    pass
+    os.remove(path)
+    for ext in ['dbf', 'prj', 'qpj', 'shx']:
+        os.remove(path[0:-3] + ext)
 
 
-def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
+# function to add tolerance (deal with OSM and other decimal precision issues)
+def keep_decimals(number, number_decimals):
+    integer_part = abs(int(number))
+    decimal_part = str(abs(int((number - integer_part)*(10**number_decimals))))
+    if len(decimal_part) < number_decimals:
+        zeros = str(0)*int((number_decimals-len(decimal_part)))
+        decimal_part = zeros + decimal_part
+    decimal = (str(integer_part) + '.' + decimal_part[0:number_decimals])
+    if number < 0:
+        decimal = ('-' + str(integer_part) + '.' + decimal_part[0:number_decimals])
+    return decimal
+
+
+def read_shp_to_multi_graph(layer_name, tolerance=None, simplify=True, geom_attrs=True):
 
     # 1. open shapefiles from directory/filename
     try:
@@ -127,13 +121,13 @@ def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
         attributes["ShpName"] = lyr.GetName()
         # Note:  Using layer level geometry type
         if g.GetGeometryType() == ogr.wkbLineString:
-            for edge in edges_from_line(g, attributes, simplify, geom_attrs):
+            for edge in edges_from_line(g, attributes, tolerance, simplify, geom_attrs):
                 e1, e2, attr = edge
                 net.add_edge(e1, e2, attr_dict=attr)
         elif g.GetGeometryType() == ogr.wkbMultiLineString:
             for i in range(g.GetGeometryCount()):
                 geom_i = g.GetGeometryRef(i)
-                for edge in edges_from_line(geom_i, attributes, simplify, geom_attrs):
+                for edge in edges_from_line(geom_i, attributes, tolerance, simplify, geom_attrs):
                     e1, e2, attr = edge
                     net.add_edge(e1, e2, attr_dict=attr)
         else:
@@ -145,12 +139,12 @@ def read_shp_to_multi_graph(layer_name, simplify=True, geom_attrs=True):
         lyr.Destroy()
     elif provider_type == 'memory':
         # delete shapefile
-        pass
+        del_shp(path)
 
     return net
 
 
-def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
+def edges_from_line(geom, attrs, tolerance=None, simplify=True, geom_attrs=True):
     """
     Generate edges for each line in geom
     Written as a helper for read_shp
@@ -184,7 +178,10 @@ def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
                 edge_attrs["Wkb"] = geom.ExportToWkb()
                 edge_attrs["Wkt"] = geom.ExportToWkt()
                 edge_attrs["Json"] = geom.ExportToJson()
-            yield (geom.GetPoint_2D(0), geom.GetPoint_2D(last), edge_attrs)
+            if tolerance == None:
+                yield (geom.GetPoint_2D(0), geom.GetPoint_2D(last), edge_attrs)
+            else:
+                yield ((Decimal(keep_decimals(geom.GetPoint_2D(0)[0],tolerance)), Decimal(keep_decimals(geom.GetPoint_2D(0)[1],tolerance))), (Decimal(keep_decimals(geom.GetPoint_2D(last)[0],tolerance)), Decimal(keep_decimals(geom.GetPoint_2D(last)[1],tolerance))), edge_attrs)
         else:
             for i in range(0, geom.GetPointCount() - 1):
                 pt1 = geom.GetPoint_2D(i)
@@ -198,5 +195,8 @@ def edges_from_line(geom, attrs, simplify=True, geom_attrs=True):
                     edge_attrs["Wkt"] = segment.ExportToWkt()
                     edge_attrs["Json"] = segment.ExportToJson()
                     del segment
-                yield (pt1, pt2, edge_attrs)
+                if tolerance is None:
+                    yield (pt1, pt2, edge_attrs)
+                else:
+                    yield ((Decimal(keep_decimals(pt1[0],tolerance)), Decimal(keep_decimals(pt1[1],tolerance))), (Decimal(keep_decimals(pt2[0],tolerance)), Decimal(keep_decimals(pt2[1],tolerance))), edge_attrs)
 
