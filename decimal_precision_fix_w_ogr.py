@@ -40,12 +40,12 @@ fields = [x.GetName() for x in input_layer.schema]
 # set up the shapefile driver
 driver = ogr.GetDriverByName("ESRI Shapefile")
 # create the data source
-data_source = driver.CreateDataSource("C:\Users\I.Kolovou\Desktop\snapped_network.shp")
+data_source = driver.CreateDataSource("/Users/joe/Downloads/test_snapped.shp")
 srs = osr.SpatialReference()
-srs.ImportFromEPSG(32633)
+srs.ImportFromEPSG(26918)
 
 # create the layer
-snapped_layer = data_source.CreateLayer("C:\Users\I.Kolovou\Desktop\snapped_network.shp", srs, ogr.wkbLineString)
+snapped_layer = data_source.CreateLayer("/Users/joe/Downloads/test_snapped.shp", srs, ogr.wkbLineString)
 
 # Add the fields we're interested in
 id_field = ogr.FieldDefn("id", ogr.OFTInteger)
@@ -56,6 +56,16 @@ wkt_field = ogr.FieldDefn("wkt", ogr.OFTString)
 wkt_field.SetWidth(250)
 snapped_layer.CreateField(wkt_field)
 
+def keep_decimals_string(string, number_decimals):
+    integer_part = string.split(".")[0]
+    decimal_part = string.split(".")[1][0:number_decimals]
+    if len(decimal_part) < number_decimals:
+        zeros = str(0) * int((number_decimals - len(decimal_part)))
+        decimal_part = decimal_part + zeros
+    decimal = integer_part + '.' + decimal_part
+    return decimal
+
+
 
 for f in input_layer:
     flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
@@ -65,9 +75,8 @@ for f in input_layer:
         snapped_feature.SetField(field_name, flddata[ind])
     pt1 =geom.GetPoint_2D(0)
     pt2 =geom.GetPoint_2D(geom.GetPointCount() - 1)
-    snapped_segment = ogr.Geometry(ogr.wkbLineString)
-    snapped_segment.AddPoint_2D(pt1[0], pt1[1])
-    snapped_segment.AddPoint_2D(pt2[0], pt2[1])
+    wkt = "LINESTRING( " + keep_decimals_string(str(pt1[0]),3)+" "+ keep_decimals_string(str(pt1[1]),3)+", "+keep_decimals_string(str(pt2[0]),3)+" "+keep_decimals_string(str(pt2[1]),3) +")"
+    snapped_segment = ogr.CreateGeometryFromWkt(wkt)
     snapped_feature.SetField("wkt", snapped_segment.ExportToWkt())
     snapped_feature.SetGeometry(snapped_segment)
     snapped_layer.CreateFeature(snapped_feature)
