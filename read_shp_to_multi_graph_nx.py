@@ -191,6 +191,7 @@ def edges_from_line(geom, attrs, tolerance=None, simplify=True):
             line.AddPoint_2D(snap_coord(pt2[0], tolerance), snap_coord(pt2[1], tolerance))
             geom = line
             wkt = make_snapped_wkt(wkt, tolerance)
+            last = 1
             del line
         edge_attrs["Wkt"] = wkt
         yield (geom.GetPoint_2D(0), geom.GetPoint_2D(last), edge_attrs)
