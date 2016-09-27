@@ -217,7 +217,7 @@ def snap_coord(coord, tolerance):
 
 
 def vertices_from_wkt(wkt):
-    nums = re.findall(r'\d+(?:\.\d*)?', wkt.rpartition(',')[0])
+    nums = [i for x in wkt[11:-1:].split(',') for i in x[1::].split(' ')]
     coords = zip(*[iter(nums)] * 2)
     for vertex in coords:
         yield vertex
