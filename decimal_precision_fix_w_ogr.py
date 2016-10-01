@@ -56,6 +56,7 @@ wkt_field = ogr.FieldDefn("wkt", ogr.OFTString)
 wkt_field.SetWidth(250)
 snapped_layer.CreateField(wkt_field)
 
+
 def keep_decimals_string(string, number_decimals):
     integer_part = string.split(".")[0]
     decimal_part = string.split(".")[1][0:number_decimals]
@@ -66,7 +67,6 @@ def keep_decimals_string(string, number_decimals):
     return decimal
 
 
-
 for f in input_layer:
     flddata = [f.GetField(f.GetFieldIndex(x)) for x in fields]
     geom = f.geometry()
@@ -75,7 +75,7 @@ for f in input_layer:
         snapped_feature.SetField(field_name, flddata[ind])
     pt1 =geom.GetPoint_2D(0)
     pt2 =geom.GetPoint_2D(geom.GetPointCount() - 1)
-    wkt = "LINESTRING( " + keep_decimals_string(str(pt1[0]),3)+" "+ keep_decimals_string(str(pt1[1]),3)+", "+keep_decimals_string(str(pt2[0]),3)+" "+keep_decimals_string(str(pt2[1]),3) +")"
+    wkt = "LINESTRING( " + keep_decimals_string(str(pt1[0]),3)+" " + keep_decimals_string(str(pt1[1]),3)+ ", " + keep_decimals_string(str(pt2[0]),3) + " " + keep_decimals_string(str(pt2[1]),3) + ")"
     snapped_segment = ogr.CreateGeometryFromWkt(wkt)
     snapped_feature.SetField("wkt", snapped_segment.ExportToWkt())
     snapped_feature.SetGeometry(snapped_segment)
