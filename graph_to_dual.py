@@ -40,7 +40,7 @@ def dl_nodes_from_pr_graph(prGraph, dlGrpah, id_column):
 
 def graph_to_dual(primal_graph, id_column, break_at_intersections=False):
     dual_graph = nx.MultiGraph()
-    dual_graph.add_edges_from([edge for point,edge in dl_edges_from_pr_graph(primal_graph, id_column, break_at_intersections)])
+    dual_graph.add_edges_from([edge for edge in dl_edges_from_pr_graph(primal_graph, id_column, break_at_intersections)])
     # add nodes (some lines are not connected to others because they are pl)
     dual_graph.add_nodes_from([node for node in dl_nodes_from_pr_graph(primal_graph, dual_graph, id_column)])
     return dual_graph
