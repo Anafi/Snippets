@@ -25,19 +25,41 @@ except ImportError, e:
 
 class SuperGraph:
 
-    def __init__(self, features, primal_graph, id_column):
+    def __init__(self, primal_graph, id_column):
         self.prGraph = primal_graph
-        self.features = features
-        self.uid = id_column
-        # generate features from wkt, set geometry, attributes
-        if features is None:
-            for edge in self.prGraph.edges(data=True):
-                feat = QgsFeature()
-                feat.setGeometry(QgsGeometry.fromWkt(edge[2]['Wkt']))
-                feat.setAttributes(edge[2].values())
 
-        # self.fields =
+        self.id_column = id_column
+        # generate features from wkt, set geometry, attributes
+
+        features = []
+        for edge in self.prGraph.edges(data=True):
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromWkt(edge[2]['Wkt']))
+            feat.setAttributes(edge[2].values())
+            features.append(feat)
+        self.features = features
+
+        self.fields = self.features[0].fields()
         self.topology = {point: edge for point, edge in topology_iter(self.prGraph, id_column, False)}
+        self.dlGraph = graph_to_dual(self.prGraph, id_column, break_at_intersections=False)
+
+    # make feat_id: wkt_geom dictionary
+    def make_wkt_dict(self):
+        return { edge[2][self.id_column]:edge[2]['Wkt'] for edge in self.prGraph.edges(data=True)}
+
+    # make feat_id: attributes dictionary
+    def make_attr_dict(self):
+        return { edge[2][self.id_column]:edge[2] for edge in self.prGraph.edges(data=True)}
+
+    # make feature list
+    def feat_generator(self):
+        for i in self.features:
+            yield i
+
+    # create features
+    def create_features(self):
+        for i in self.features
+
 
     # methods on features
 
@@ -50,7 +72,7 @@ class SuperGraph:
         #self.dlGraph.remove_edges_from(rmv_dl_edges_sets)
         # rmv dlGraph edges
 
-        return SuperGraph(new_features, self.prGraph, self.uid)
+        return SuperGraph(self.prGraph, self.id_column)
 
     def add_features(self, features_list):
         pass
@@ -83,6 +105,36 @@ class SuperGraph:
     def move_node(self,node,location):
         pass
 
+    def make_shp(self, crs):
+        network = QgsVectorLayer ('LineString?crs=' + crs.toWkt(), "network", "memory")
+        QgsMapLayerRegistry.instance().addMapLayer(network)
+        pr = network.dataProvider()
+        network.startEditing()
+        pr.addAttributes([QgsField(i.name(), i.type()) for i in self.fields])
+        pr.addFeatures(self.features)
+        network.commitChanges()
+
+    def make_dl_shp(self,crs):
+        dual_to_shp(crs, self.features, self.dlGraph,Features(self.features).fid_to_uid(self.id_column))
+
+    def find_breakages(self, id_column):
+        uid = Features(self.features).fid_to_uid(id_column)
+        geometries = Features(self.features).make_geom_dict('feature_id')
+        for feat, inter_lines in inter_lines_iter(self.features):
+            f_geom = geometries[feat]
+            breakages = []
+            for line in inter_lines:
+                intersection = f_geom.intersection(geometries[line])
+                if intersection.wkbType() == 1 and point_is_vertex(intersection, f_geom):
+                    breakages.append(intersection)
+                # TODO: test multipoints
+                elif intersection.wkbType() == 4:
+                    for point in intersection.asGeometryCollection():
+                        if point_is_vertex(intersection, f_geom):
+                            breakages.append(point)
+            if len(breakages) > 0:
+                yield uid[feat], set([vertex for vertex in find_vertex_index(breakages, feat, geometries)])
+
 
 # sGraph features methods
 
@@ -106,13 +158,23 @@ class Features:
         else:
             return {i[id_column]:i.geometryAndOwnership() for i in self.features}
 
+    # dictionary of feature_id: feature_attribute key, values
+
     def make_attr_dict(self,id_column):
         if id_column == 'feature_id':
             return {i.id():i.attributes() for i in self.features}
         else:
             return {i[id_column]:i.attributes() for i in self.features}
 
-    # dictionary of feature_id: feature_attribute key, values
+    # dictionary of feature_id: feature key, values
+
+    def make_feat_dict(self,id_column):
+        if id_column == 'feature_id':
+            return {i.id():i for i in self.features}
+        else:
+            return {i[id_column]:i for i in self.features}
+
+    # dictionary of feature_id: attr_column key,values
 
     def fid_to_uid(self, uid_column):
         return {i.id(): i[uid_column] for i in self.features}
@@ -128,8 +190,9 @@ class Features:
     def update_fields(self, column_name):
         pass
 
-    def make_shp(self, features, crs, encoding, path):
-        pass
+
+
+
 
 
 # analyse a super graph
@@ -142,31 +205,14 @@ class SuperGraphAnalysis:
         self.uid = id_column
         self.sGrpah = super_graph
 
-    def break_at_intersections(self, sGraph, id_column):
-        uid = Features(sGraph.features).fid_to_uid( id_column)
+
+
+    def clean_duplicates(self, sGraph, id_column):
         # remove nodes
-        # add nodes
-        geometries = Features(sGraph.features).make_geom_dict('feature_id')
-        for comb in inter_lines_iter(sGraph.features, geometries, uid):
-            if comb[1] not in dual_graph.neighbors(comb[0]):
-                yield comb
-
-
-    # TODO test
-    # this function is not needed as the construction of the primal_graph removes multipolylines
-
-    def break_multiparts(self, sGraph, uid):
-        # remove dg nodes that are multiparts
-        features = Features(sGraph[0])
-        dl_nodes_to_rmv = []
-        for feat, geomCol in multi_part_iter(Features(sGraph.features).make_geom_dict(uid)):
-            feat_to_rmv.append(feat)
-            feat_to_add.append(geomCol)
-            # add nodes
-
-    def clean_duplicates(self, sGraph, uid):
-        # remove nodes
-        return sGraph
+        uid = Features(sGraph.features).fid_to_uid(id_column)
+        for point, edge in topology_iter(sGraph.prGraph, id_column, False):
+            lengths = []
+            return sGraph
 
     def merge(self,sGraph,uid,criterion):
         if criterion == 'conectivity 2':
@@ -175,8 +221,9 @@ class SuperGraphAnalysis:
             pass
 
 
-
+# break multiparts is not needed as the construction of the primal_graph removes multipolylines
 # multi-part geometries iterator
+# get invalids is not needed
 
 
 def multi_part_iter(geometries):
@@ -189,7 +236,7 @@ def multi_part_iter(geometries):
 # limitation: no multiparts are allowed
 
 
-def inter_lines_iter(features, geometries, uid):
+def inter_lines_iter(features):
     spIndex = QgsSpatialIndex()  # create spatial index object
     # insert features to index
     for f in features:
@@ -197,15 +244,56 @@ def inter_lines_iter(features, geometries, uid):
     # find lines intersecting other lines
     for i in features:
         inter_lines = spIndex.intersects(QgsRectangle(QgsPoint(i.geometry().asPolyline()[0]), QgsPoint(i.geometry().asPolyline()[-1])))
-        for line in inter_lines:
-            comb = (i.id(), line)
-            geom1 = geometries[comb[0]]
-            geom2 = geometries[comb[1]]
-            intersection = geom1.intersection(geom2)
-            if comb[0] < comb[1] and intersection.wkbType() in [1,4]:
-                yield (uid[comb[0]], uid[comb[1]])
+        yield i.id(), inter_lines
 
 
+def find_vertex_index(points,feat,geometries):
+    for point in points:
+        yield geometries[feat].asPolyline().index(point.asPoint())
+
+
+def point_is_vertex(point,line):
+    if point.asPoint() in line.asPolyline()[1:-1]:
+        return True
+
+
+from itertools import tee, izip
+
+# source: https://docs.python.org/2/library/itertools.html
+
+
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return izip(a, b)
+
+
+def break_features(sGraph):
+    new_broken_feat = []
+    feat_to_del_ids = []
+    id_column = sGraph.id_column
+    geometries = Features(sGraph.features).make_geom_dict('feature_id')
+    attributes = Features(sGraph.features).make_attr_dict(id_column)
+    uid = Features(sGraph.features).fid_to_uid(id_column)
+    uid_rev = {v: k for k, v in uid.items()}
+    for line_to_break, indices in sGraph.find_breakages(id_column):
+        list(indices).sort()
+        attr = attributes[line_to_break]
+        count = 1
+        feat_to_del_ids.append(line_to_break)
+        for endpoints in pairwise(list(indices)):
+            points = []
+            for i in range(endpoints[0], endpoints[1]+1):
+                points.append(QgsGeometry().fromPoint(geometries[uid_rev[line_to_break]].asPolyline()[i]).asPoint())
+            new_geom = QgsGeometry().fromPolyline(points)
+            new_feat = QgsFeature()
+            new_feat.setGeometry(new_geom)
+            new_feat.setAttributes(attr + [uid[line_to_break] + 'br_id_' + str(count)])
+            count += 1
+            new_broken_feat.append(new_feat)
+    new_fields = sGraph.fields + [QgsField('broken_id',QVariant.String)]
+
+    return new_broken_feat, feat_to_del_ids, new_fields
 
 # update unique id column on a network
 # limitation: works only with shapefiles
