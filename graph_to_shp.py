@@ -38,19 +38,16 @@ def add_column(v_layer, col_name, col_type):
     v_layer.commitChanges()
 
 
-def dual_to_shp(network, dual_graph):
+def dual_to_shp( crs, features_list, dual_graph, uid):
     # TODO: some of the centroids are not correct
-    centroids = {i.id(): pl_midpoint(i.geometry()) for i in network.getFeatures()}
-
+    centroids = {uid[i.id()]: pl_midpoint(i.geometry()) for i in features_list}
     # new point layer with centroids
-    crs = network.crs()
     points = QgsVectorLayer('Point?crs=' + crs.toWkt(), "dual_graph_nodes", "memory")
     QgsMapLayerRegistry.instance().addMapLayer(points)
     pr = points.dataProvider()
     points.startEditing()
     pr.addAttributes([QgsField("id", QVariant.Int)])
     points.commitChanges()
-
     id = int(0)
     features = []
     for i in centroids.values():
@@ -60,11 +57,9 @@ def dual_to_shp(network, dual_graph):
         feat.setAttributes([id, i[0], i[1]])
         features.append(feat)
         id += int(1)
-
     points.startEditing()
     pr.addFeatures(features)
     points.commitChanges()
-
     # new line layer with edge-edge connections
     lines = QgsVectorLayer('LineString?crs=' + crs.toWkt(), "dual_graph_edges", "memory")
     QgsMapLayerRegistry.instance().addMapLayer(lines)
@@ -72,7 +67,6 @@ def dual_to_shp(network, dual_graph):
     lines.startEditing()
     pr.addAttributes([QgsField("id", QVariant.Int), QgsField("cost", QVariant.Int)])
     lines.commitChanges()
-
     id = -1
     New_feat = []
     for i in dual_graph.edges(data='cost'):
@@ -83,9 +77,7 @@ def dual_to_shp(network, dual_graph):
         new_feat.setGeometry(new_geom)
         new_feat.setAttributes([id, i[2]])
         New_feat.append(new_feat)
-
     lines.startEditing()
     pr.addFeatures(New_feat)
     lines.commitChanges()
-
     return centroids
