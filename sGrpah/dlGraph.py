@@ -1,5 +1,3 @@
-import itertools
-import networkx as nx
 
 
 class dlGraph:

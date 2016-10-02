@@ -1,9 +1,9 @@
 
 # imports
 import networkx as nx
-import utilityFunctions as uF
-import shpFunctions as sF
-import superGraph
+# import utilityFunctions as uF
+# import shpFunctions as sF
+# import superGraph
 
 # ----- TRANSFORMATION OPERATORS -----
 
@@ -12,12 +12,10 @@ import superGraph
 
 
 def make_sGraph(layer_name, id_column, tolerance, simplify):
-    network = uF.getLayerByName(layer_name)
-    features = [i for i in network.getFeatures()]
     # invalid geometries are not included
-    primal_graph = sF.read_shp_to_multi_graph(layer_name, tolerance, simplify)
+    primal_graph = read_shp_to_multi_graph(layer_name, tolerance, simplify)
 
-    return superGraph(primal_graph,id_column)
+    return SuperGraph(primal_graph,id_column)
 
 
 # ----- prGRAPH TO FEATURES
@@ -38,14 +36,14 @@ def graph_to_features(prGraph):
 # ----- prGRAPH TO dlGRAPH
 
 
-def graph_to_dual(prGraph, break_at_intersections=False):
+def graph_to_dual(sGraph, break_at_intersections=False):
     dual_graph = nx.MultiGraph()
-    id_column = prGraph.id_column
+    id_column = sGraph.getprGraph.id_column
     dual_graph.add_edges_from(
-        [edge for edge in prGraph.dl_edges_from_pr_graph(break_at_intersections)])
+        [edge for edge in (sGraph.getprGraph).dl_edges_from_pr_graph(break_at_intersections)])
     # add nodes (some lines are not connected to others because they are pl)
     dual_graph.add_nodes_from(
-        [node for node in prGraph.dl_nodes_from_pr_graph(dual_graph, id_column)])
+        [node for node in (sGraph.getprGraph).dl_nodes_from_pr_graph(dual_graph, id_column)])
     return dual_graph
 
 
@@ -54,21 +52,23 @@ def graph_to_dual(prGraph, break_at_intersections=False):
 # TODO: limitation only temp, add path
 
 
-def make_shp(fGraph, crs):
+def make_shp(sGraph, crs):
     network = QgsVectorLayer('LineString?crs=' + crs.toWkt(), "network", "memory")
     QgsMapLayerRegistry.instance().addMapLayer(network)
     pr = network.dataProvider()
     network.startEditing()
-    pr.addAttributes([QgsField(i.name(), i.type()) for i in fGraph.get_fields()])
-    pr.addFeatures(fGraph.features)
+    pr.addAttributes([QgsField(i.name(), i.type()) for i in sGraph.getfields])
+    pr.addFeatures((sGraph.getprGraph).features)
     network.commitChanges()
 
 
 # ----- dlGRAPH TO SHP
 
-def dual_to_shp(crs, fGraph, dlGraph, id_column):
+def dual_to_shp(crs, sGraph,  dlGraph):
 
-    centroids = fGraph.make_centroids_dict(id_column)
+    fGraph = sGraph.getfGraph
+    id_column = sGraph.id_column
+    centroids = fGraph.make_centroids_dict('feat_id')
 
     # new point layer with centroids
     points = QgsVectorLayer('Point?crs=' + crs.toWkt(), "dual_graph_nodes", "memory")

@@ -1,7 +1,7 @@
 
 # imports
 from os.path import expanduser
-import shpFunctions as sF
+# import shpFunctions as sF
 
 
 # source: ess utility functions
@@ -38,7 +38,7 @@ def getLayerPath4ogr(layer):
         # save temp file in home directory
         home = expanduser("~")
         path = home + '/' + layer.name() + '.shp'
-        copied_layer = sF.copy_shp(layer, path)
+        copied_layer = copy_shp(layer, path)
     return path, provider_type
 
 
@@ -76,4 +76,8 @@ def add_column(v_layer, col_name, col_type):
     v_layer.startEditing()
     pr.addAttributes([QgsField(col_name, col_type)])
     v_layer.commitChanges()
+
+def add_field_to_fields(fields,field_name,field_type):
+    return [QgsField(fld.name,fld.type) for fld in fields] + [QgsField(field_name,field_type)]
+
 

@@ -1,13 +1,13 @@
 
 # imports
-import generalFunctions as gF
+# import generalFunctions as gF
 
 
 # read wkt of line and return vertices iterator
 
 
 def vertices_from_wkt(wkt):
-    nums = [i for x in wkt[11:-1:].split(',') for i in x[1::].split(' ')]
+    nums = [i for x in wkt[11:-1:].split(',') for i in x.split(' ')]
     coords = zip(*[iter(nums)] * 2)
     for vertex in coords:
         yield vertex
@@ -17,10 +17,10 @@ def vertices_from_wkt(wkt):
 
 
 def make_snapped_wkt(wkt, number_decimals):
-    snapped_wkt = 'LINESTRING( '
+    snapped_wkt = 'LINESTRING'
     for i in vertices_from_wkt(wkt):
-        new_vertex = str(gF.keep_decimals_string(i[0], number_decimals)) + ' ' + str(
-            gF.keep_decimals_string(i[1], number_decimals))
+        new_vertex = str(keep_decimals_string(i[0], number_decimals)) + ' ' + str(
+            keep_decimals_string(i[1], number_decimals))
         snapped_wkt += str(new_vertex) + ', '
     return snapped_wkt[0:-2] + ')'
 
@@ -30,8 +30,8 @@ def make_snapped_wkt(wkt, number_decimals):
 
 def make_point_from_wkt(wkt, number_decimals):
     point = wkt[7:-1]
-    wkt = str(gF.keep_decimals_string(point[0], number_decimals)) + ' ' + str(
-            gF.keep_decimals_string(point[1], number_decimals))
+    wkt = str(keep_decimals_string(point[0], number_decimals)) + ' ' + str(
+            keep_decimals_string(point[1], number_decimals))
     return wkt
 
 

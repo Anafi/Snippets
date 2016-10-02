@@ -1,9 +1,9 @@
 
 # imports
-import utilityFunctions as uF
+# import utilityFunctions as uF
 import networkx as nx
-import generalFunctions as gF
-import wktFunctions as wF
+# import generalFunctions as gF
+# import wktFunctions as wF
 import os
 
 
@@ -11,7 +11,7 @@ import os
 
 
 def copy_shp(temp_layer, path):
-    features_to_copy = uF.getAllFeatures(temp_layer)
+    features_to_copy = getAllFeatures(temp_layer)
     provider = temp_layer.dataProvider()
     writer = QgsVectorFileWriter(path, provider.encoding(), provider.fields(), provider.geometryType(), provider.crs(),
                                  "ESRI Shapefile")
@@ -49,8 +49,8 @@ def read_shp_to_multi_graph(layer_name, tolerance=None, simplify=True):
         raise ImportError("read_shp requires OGR: http://www.gdal.org/")
 
     # find if the table with the give table_name is a shapefile or a postgis file
-    layer = uF.getLayerByName(layer_name)
-    path, provider_type = uF.getLayerPath4ogr(layer)
+    layer = getLayerByName(layer_name)
+    path, provider_type = getLayerPath4ogr(layer)
 
     # TODO: push error message when path is empty/does not exist/connection with db does not exist
     if path == '':  # or not os.path.exists(path)
@@ -128,10 +128,10 @@ def edges_from_line(geom, attrs, tolerance=None, simplify=True):
             pt1 = geom.GetPoint_2D(0)
             pt2 = geom.GetPoint_2D(last)
             line = ogr.Geometry(ogr.wkbLineString)
-            line.AddPoint_2D(gF.snap_coord(pt1[0], tolerance), gF.snap_coord(pt1[1], tolerance))
-            line.AddPoint_2D(gF.snap_coord(pt2[0], tolerance), gF.snap_coord(pt2[1], tolerance))
+            line.AddPoint_2D(snap_coord(pt1[0], tolerance), snap_coord(pt1[1], tolerance))
+            line.AddPoint_2D(snap_coord(pt2[0], tolerance), snap_coord(pt2[1], tolerance))
             geom = line
-            wkt = wF.make_snapped_wkt(wkt, tolerance)
+            wkt = make_snapped_wkt(wkt, tolerance)
             last = 1
             del line
         edge_attrs["Wkt"] = wkt
@@ -142,8 +142,8 @@ def edges_from_line(geom, attrs, tolerance=None, simplify=True):
             pt2 = geom.GetPoint_2D(i + 1)
             # TODO: construct segment geom
             if tolerance is not None:
-                pt1 = (gF.snap_coord(pt1[0], tolerance), gF.snap_coord(pt1[1], tolerance))
-                pt2 = (gF.snap_coord(pt2[0], tolerance), gF.snap_coord(pt2[1], tolerance))
+                pt1 = (snap_coord(pt1[0], tolerance), snap_coord(pt1[1], tolerance))
+                pt2 = (snap_coord(pt2[0], tolerance), snap_coord(pt2[1], tolerance))
             segment = ogr.Geometry(ogr.wkbLineString)
             segment.AddPoint_2D(pt1[0], pt1[1])
             segment.AddPoint_2D(pt2[0], pt2[1])

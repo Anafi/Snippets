@@ -1,6 +1,5 @@
 
 import math
-import generalFunctions
 
 def find_vertex_index(points,feat,geometries):
     for point in points:

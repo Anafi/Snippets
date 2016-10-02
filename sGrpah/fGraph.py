@@ -1,12 +1,16 @@
 
 # imports
-import plFunctions as pF
+# import plFunctions as pF
 
 
 class fGraph:
 
     def __init__(self, features):
         self.features = features
+
+    def set_fields(self,fields):
+        for i in self.features:
+            i.setFields(fields,True)
 
     # ---- ANALYSIS OPERATIONS -----
 
@@ -48,10 +52,10 @@ class fGraph:
     # TODO: some of the centroids are not correct
     def make_centroids_dict(self, id_column):
         if id_column == 'feature_id':
-            centroids = {i.id(): pF.pl_midpoint(i.geometry()) for i in self.features}
+            centroids = {i.id(): pl_midpoint(i.geometry()) for i in self.features}
         else:
-            uid = self.features.fid_to_uid(id_column)
-            centroids = {uid[i.id()]: pF.pl_midpoint(i.geometry()) for i in self.features}
+            uid = {i.id(): i[id_column] for i in self.features}
+            centroids = {uid[i.id()]: pl_midpoint(i.geometry()) for i in self.features}
         return centroids
 
     # iterator of line and intersecting lines based on spatial index
@@ -98,12 +102,12 @@ class fGraph:
             breakages = []
             for line in inter_lines:
                 intersection = f_geom.intersection(geometries[line])
-                if intersection.wkbType() == 1 and pF.point_is_vertex(intersection, f_geom):
+                if intersection.wkbType() == 1 and point_is_vertex(intersection, f_geom):
                     breakages.append(intersection)
                 # TODO: test multipoints
                 elif intersection.wkbType() == 4:
                     for point in intersection.asGeometryCollection():
-                        if pF.point_is_vertex(intersection, f_geom):
+                        if point_is_vertex(intersection, f_geom):
                             breakages.append(point)
             if len(breakages) > 0:
-                yield uid[feat], set([vertex for vertex in pF.find_vertex_index(breakages, feat, geometries)])
+                yield uid[feat], set([vertex for vertex in find_vertex_index(breakages, feat, geometries)])
