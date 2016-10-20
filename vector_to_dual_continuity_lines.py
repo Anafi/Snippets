@@ -214,7 +214,7 @@ def dual_to_shp( path,dual_graph,continuity):
         if cos_angle>1:
             cos_angle = int(1)
         cost = math.acos(cos_angle)
-        new_feat.setAttributes([id,i[0],i[1],str(inter_point.asPoint()),str(vertex1),str(vertex2),int(math.degrees(cost))])
+        new_feat.setAttributes([id,i[0],i[1],str(inter_point.asPoint()),str(vertex1),str(vertex2),int(180 - math.degrees(cost))])
         New_feat.append(new_feat)
 
     lines.startEditing()
