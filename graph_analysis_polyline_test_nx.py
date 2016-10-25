@@ -67,6 +67,9 @@ for i in dg.edges(data=True):
 from networkx import betweenness_centrality
 choice = nx.betweenness_centrality(dg_w_cost, k=None, normalized=False, weight='cost', endpoints=False, seed=None)
 
+# TODO: test local measures
+# betweenness_centrality_subset(G, sources, targets, normalized=False, weight=None)
+
 # push the results back to network
 import csv
 
