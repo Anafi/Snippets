@@ -1,11 +1,11 @@
 # imports
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/geometryFunctions/wktFunctions.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/otherFunctions/utilityFunctions.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/otherFunctions/shpFunctions.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/sGrpah/prGraph.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/geometryFunctions/plFunctions.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/otherFunctions/generalFunctions.py'.encode('utf-8'))
-execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Rcl-topology-cleaner/sGraphFunctions/transformer.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/dual_graph.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/generalFunctions.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/plFunctions.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/primal_graph.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/shpFunctions.py'.encode('utf-8'))
+execfile(u'C:/Users/I.Kolovou/Desktop/sGraph/utilityFunctions.py'.encode('utf-8'))
+
 execfile(u'C:/Users/I.Kolovou/Documents/GitHub/Snippets/vector_to_dual_continuity_lines.py'.encode('mbcs'))
 
 from PyQt4.QtCore import QVariant
@@ -14,9 +14,9 @@ qgsflds_types = {u'Real': QVariant.Double , u'String': QVariant.String}
 #------------------- CHANGES
 
 #layer_name = 'MK_polyline_model'
-layer_name = 'L_segment_simplified_model'
-csv_path = 'P:/2240_InnovateUK_Integrated_City_Modelling/2240_Project_Work/2240_Axial/2240_Composite_Model/nx_processing_L/nxCh_segm.csv'
-network_path = r'P:/2240_InnovateUK_Integrated_City_Modelling/2240_Project_Work/2240_Axial/2240_Composite_Model/nx_processing_L/L_segment_simplified_model.shp'
+layer_name = 'MK_polyline_model'
+csv_path = 'P:/2240_InnovateUK_Integrated_City_Modelling/2240_Project_Work/2240_Axial/2240_Composite_Model/nx_processing_MK/nxCh_pl.csv'
+network_path = r'P:/2240_InnovateUK_Integrated_City_Modelling/2240_Project_Work/2240_Axial/2240_Composite_Model/nx_processing_MK/MK_polyline_model.shp'
 # ADD new feature id column
 # id column should be feature id)
 base_id = 'feature_id'
